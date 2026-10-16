@@ -29,9 +29,15 @@ class UserSession:
         self.tasks: dict[str, MonitorTask] = {}
         self.overrides: dict[str, dict] = {}
         self.caches: dict[str, dict | list] = {}
+        self.cache_fetched_at: dict[str, float] = {}
+        self.cache_errors: dict[str, str | None] = {}
         self.seen_ids: dict[str, set[int]] = {}
         self.task_coros: dict[str, asyncio.Task] = {}
         self.last_access: float = 0
+        self.refresh_lock = asyncio.Lock()
+        self.session_generation = 0
+        self.next_auth_refresh = 0.0
+        self.laz_studentid: str | None = None
 
     async def close(self):
         for coro in self.task_coros.values():

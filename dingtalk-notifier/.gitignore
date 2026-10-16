@@ -1,0 +1,10 @@
+__pycache__/
+.runtime/
+.cli-state/
+config.private.json
+*.private.json
+*.sqlite3
+*.sqlite3-*
+!bridge.example.json
+!config.example.json
+!implement-stage/SILENT_ASSUMPTION_SWEEP.json

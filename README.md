@@ -164,6 +164,14 @@ lazy-server
 
 参见 [docs/DEPLOY.md](docs/DEPLOY.md)（支持 systemd 服务 和 Docker 两种部署方式）。
 
+### 钉钉提醒与私聊指令（本 fork 新增）
+
+通过官方 DingTalk Workspace CLI 连接指定私聊，复用 LAZY Server 的点名/待办缓存：签到首次出现时发应用内 DING，待办在截止前 24、12、3 小时各提醒一次，并持久化去重。
+
+支持 `/help`、`/assignment`、`/assignment_add`、`/time` 和 `/task interval|reset`。手动待办与学在浙大待办合并展示并参与提醒。macOS 可通过 LaunchAgent 后台运行。
+
+安装、独立 Server 登录、配置和停止方法见 [dingtalk-notifier/README.md](dingtalk-notifier/README.md)。
+
 ### 安全说明
 
 LAZY SERVER 使用 `~/.lazy_server/master.key` 存储 Fernet 加密主密钥（`chmod 600`），

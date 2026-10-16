@@ -1,0 +1,10 @@
+{
+  "profile": "<corpId:userId from dws profile list>",
+  "recipient_open_dingtalk_id": "<verified recipient openDingTalkId>",
+  "conversation_id": "<verified private conversationId>",
+  "dws_path": "/absolute/path/to/dws",
+  "dws_config_dir": "/absolute/path/to/dws-config",
+  "state_db": "/absolute/path/to/bridge.sqlite3",
+  "server_url": "http://127.0.0.1:8765",
+  "ding_enabled": true
+}

@@ -1,0 +1,124 @@
+{
+  "review_independence": "same-family",
+  "acceptance_status": "provisional",
+  "initial_attempt": "reviewer unavailable due usage limit; retried after user continuation",
+  "rounds": [
+    {
+      "undeclared": [
+        {
+          "site": "dingtalk-notifier/backend.py:32-38",
+          "decision": "要求 Server 凭据存储中恰好只有一个账号，没有显式账号选择入口。",
+          "why_it_matters": "已有多个合法 Server 账号的用户无法启动桥接；A028 只声明使用 Server 存储，未声明单账号限制。",
+          "class": "interface"
+        },
+        {
+          "site": "dingtalk-notifier/commands.py:114-115",
+          "decision": "拒绝添加截止时间已经过去或等于当前时间的手动待办。",
+          "why_it_matters": "请求要求保存手动待办，未限定只能添加未来事项；这是合理但需要声明的接受规则。",
+          "class": "semantic"
+        },
+        {
+          "site": "dingtalk-notifier/commands.py:91-107",
+          "decision": "Server 查询失败时，/assignment 连已保存在本地的手动待办也不显示。",
+          "why_it_matters": "自动提醒已有本地任务降级路径，但查询没有；这一不可用时的行为没有写入台账。内存复现确认本地存在任务时仍只返回查询失败。",
+          "class": "semantic"
+        }
+      ],
+      "stale_rows": [
+        {
+          "id": "A-001",
+          "mismatch": "“只实现普通消息”与当前 DING 实现及 A023 冲突，应明确仅适用于原单次发送工具。"
+        },
+        {
+          "id": "A-005",
+          "mismatch": "“仅用标准库、独立运行、不导入 LAZY”不适用于桥接：backend/runtime 使用 httpx，backend/login_server 导入 lazy；A027 另指定 Python 3.12。应明确阶段和适用范围。"
+        },
+        {
+          "id": "A-010",
+          "mismatch": "“仅显式 --send 可联网”不适用于 bridge.py 的 --check/--run，应明确仅约束原单次发送工具。"
+        },
+        {
+          "id": "A-022",
+          "mismatch": "声明提交状态查询失败或未知时“留错误状态”，但 backend.checked_tasks 丢弃 last_error，runtime.poll_once 随后清除 todo_watch 错误。"
+        }
+      ],
+      "semantic_undeclared": 2,
+      "verdict": "gaps",
+      "bugs": [
+        {
+          "priority": "P1",
+          "site": "dingtalk-notifier/runtime.py:141-143; dingtalk-notifier/state_store.py:123-130",
+          "problem": "失效的待发截止提醒会永久阻塞发送队列。",
+          "trigger": "前20条 pending 提醒已过期、已提交或已改期，因此不在 allowed_deadlines 中；后面存在 /help 回复或签到通知。",
+          "evidence": "内存复现得到 remote_send_attempts=0、pending=21。循环每次只取相同前20条并 continue，既不终结它们也不扫描后续记录。",
+          "fix": "在选择发送批次前处理不再有效的记录，或继续扫描到足够数量的可发送记录；不要让暂不可确认的提醒占满整个发送窗口。"
+        },
+        {
+          "priority": "P2",
+          "site": "dingtalk-notifier/runtime.py:139-147,304-306",
+          "problem": "重启会发送已经结束的旧签到通知。",
+          "trigger": "签到提醒已入队但尚未发送时进程退出，之后重启且当前签到列表为空。",
+          "evidence": "启动重新查询签到只会添加新通知，不会撤销旧 pending；dispatch 对 rollcall 没有当前有效性检查。内存复现中旧签到仍被发送并记为 accepted。",
+          "fix": "启动和后续签到查询应更新当前有效签到集合；发送前确认待发签到仍存在，成功查询确认已结束的旧通知应终结。"
+        },
+        {
+          "priority": "P2",
+          "site": "dingtalk-notifier/backend.py:114-121; dingtalk-notifier/runtime.py:107-117",
+          "problem": "提交核对失败导致提醒被跳过，但健康状态显示无错误。",
+          "trigger": "普通 homework 的提交接口返回 status=unknown、submitted=null、last_error=http_error。",
+          "evidence": "内存复现后 bridge_errors={}，没有提醒入队；backend 只保留 submitted=None，poll_once 将此次轮询记为成功并清除错误。",
+          "fix": "将提交核对失败类别传回桥接并暴露在健康状态；继续保持未知状态不发提醒。"
+        }
+      ],
+      "review_scope": "直接读取了指定需求、台账、构建记录、raw diff、实现和测试；复现仅使用内存 SQLite 与模拟调用，未联网、未读取私有配置或运行状态、未修改文件。未发现已证实的远程消息绕过固定发送人及会话过滤，或被解释为 shell 命令的路径。本次同模型族审查仅为 provisional，不能据此认可整体正确性或实际端到端交付；指定构建记录仍将 F4 和登录验证标为 pending。"
+    },
+    {
+      "undeclared": [],
+      "stale_rows": [],
+      "semantic_undeclared": 0,
+      "verdict": "clean",
+      "bugs": [],
+      "first_round_verification": [
+        {
+          "finding": "单账号限制未声明",
+          "status": "resolved",
+          "evidence": "A032 与 backend.py:33-35 一致。"
+        },
+        {
+          "finding": "拒绝已过期或等于当前时间的手动项未声明",
+          "status": "resolved",
+          "evidence": "A030 与 commands.py:123-124 一致。"
+        },
+        {
+          "finding": "Server 不可用时隐藏本地手动待办",
+          "status": "resolved",
+          "evidence": "commands.py:91-114 已提供明确标注的本地查询结果，A031 已记录；内存验证通过。"
+        },
+        {
+          "finding": "A001/A005/A010 适用范围过时",
+          "status": "resolved",
+          "evidence": "台账已明确这些行适用于早期 send.py，并区分常驻 bridge 的依赖、DING 和联网入口。"
+        },
+        {
+          "finding": "失效待发提醒阻塞发送队列",
+          "status": "resolved",
+          "evidence": "state_store.py:132-145 在 LIMIT 前过滤，runtime.py:163-164 使用该查询。实际内存验证：25条 held 记录后面的 reply、当前 rollcall、有效 deadline 均被发送。"
+        },
+        {
+          "finding": "重启发送已结束的旧签到通知",
+          "status": "resolved",
+          "evidence": "runtime.py:106-112 成功刷新后调用 retire_ended_rollcalls；查询失败时清空可发送集合并保留 pending。A033 已声明；内存验证旧签到转为 skipped。"
+        },
+        {
+          "finding": "提交核对失败未保留健康错误",
+          "status": "resolved",
+          "evidence": "backend.py:108-125 保留 submission_errors，runtime.py:127-131 保留 submission_checks。内存验证 http_error 被保留且健康错误计数为1，符合A022。"
+        }
+      ],
+      "new_decisions": "本轮修复引入的本地查询降级、失效签到终结和暂时未知提醒保留规则，均已由A031/A033覆盖；未发现新的实质性未声明决定。",
+      "validation": "重新直接读取指定需求、台账、构建记录、实现、测试和 raw Server diff，并执行仅使用内存 SQLite 与模拟调用的复核。未联网、未读取私有状态、未修改文件。",
+      "limitations": "clean 仅表示本轮范围内未发现剩余假设台账缺口或已证实的新缺陷。同模型族审查仍为 provisional，不能据此认可整体正确性或实际端到端完成。所读 REQUEST 第12项和 BRIDGE_BUILD 仍保留登录/F4 pending 元信息；本轮未独立验证实时部署状态。"
+    }
+  ],
+  "post_review_change": "service.py waits for the old process and launchd job to exit before bootstrap; verified by executor's real local restart, not re-reviewed."
+}

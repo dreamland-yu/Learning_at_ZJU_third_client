@@ -7,7 +7,7 @@ from fastapi import FastAPI
 
 from ..core.printlog.print_log import setup_global_logging
 from .monitor import start_monitor_for_user, stop_monitor_for_user
-from .routers import auth, data, health, tasks
+from .routers import assignments, auth, data, health, tasks
 from .session_manager import create_user_client
 from .state import ServerState, UserSession
 from .task_loader import load_system_tasks
@@ -82,6 +82,7 @@ app.state.server_state = SERVER_STATE
 app.include_router(auth.router)
 app.include_router(tasks.router)
 app.include_router(data.router)
+app.include_router(assignments.router)
 app.include_router(health.router)
 
 
